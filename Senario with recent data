@@ -1,0 +1,163 @@
+Sub pullDataFromInternet()
+    Dim htm As Object
+    Dim Tr As Object
+    Dim Td As Object
+    Dim Tab1 As Object
+    Dim url As String
+    Dim timeStart As Long
+    Dim timeEnd As Long
+    
+
+    Dim IE As New InternetExplorer
+    Dim Doc As HTMLDocument
+    Dim LastRow As Long
+    Dim rowNum As String
+    
+    'initial value
+    Column_Num_To_Start = 1
+    iRow = 2
+    iCol = Column_Num_To_Start
+    iTable = 0
+    
+    
+    'Clean workspace
+    LastRow = Worksheets("Download_Data").Cells(Worksheets("Download_Data").Rows.Count, "A").End(xlUp).row
+    If LastRow > 1 Then
+        rowNum = "2:" & LastRow
+        Worksheets("Download_Data").Rows(rowNum).Value = ""
+    End If
+
+    IE.Visible = True
+    url = Trim(Worksheets("Download_Data").Range("A1").Value)
+    IE.navigate url
+    
+    'https://eutility.activebilling.com.au/accounts/10003989/services
+    
+    timeStart = Timer
+    Do
+        timeEnd = Timer
+        If timeEnd - timeStart > 10 Then
+            timeStart = Timer
+            IE.Refresh
+        End If
+        DoEvents
+    Loop Until IE.readyState = READYSTATE_COMPLETE
+    
+    Set Doc = IE.document
+    
+        'sDD = Trim(Doc.getElementsByTagName("tbody")(1).innerText)
+    
+
+ 
+    'Loop Through Each Table and Download it to Excel in Proper Format
+    
+    For Each Tab1 In Doc.getElementsByTagName("table")
+        With Doc.getElementsByTagName("table")(iTable)
+            For Each Tr In .Rows
+                For Each Td In Tr.Cells
+                    'Worksheets("Download_Data").Cells(iRow, iCol).Select
+                    Worksheets("Download_Data").Cells(iRow, iCol) = Td.innerText
+                    iCol = iCol + 1
+                Next Td
+                iCol = Column_Num_To_Start
+                iRow = iRow + 1
+            Next Tr
+        End With
+        iTable = iTable + 1
+        iCol = Column_Num_To_Start
+        iRow = iRow + 1
+    Next Tab1
+ 
+    'MsgBox "Process Completed"
+    'Close IE
+    IE.Quit
+    
+End Sub
+Sub start_collectAccountData()
+    'https://eutility.activebilling.com.au/accounts?page=1
+    Dim url As String
+    Dim pp As Integer
+    Dim LastRow As Long
+    Dim LastRowPaste As Long
+    Dim rngC As String
+    Dim rngP As String
+    Dim ppStart As Integer
+    Dim ppEnd As Integer
+    
+    Application.DisplayStatusBar = True
+    Application.ScreenUpdating = False
+    
+    
+
+    ppStart = Worksheets("UI").Range("E2").Value
+    ppEnd = Worksheets("UI").Range("F2").Value
+    
+    
+    'clean existing data
+    LastRowPaste = Worksheets("Account_Data").Cells(Worksheets("Account_Data").Rows.Count, "A").End(xlUp).row  'existing row
+    If LastRowPaste > 2 Then
+        rngP = "3:" & LastRowPaste
+        Worksheets("Account_Data").Rows(rngP).Value = ""
+    End If
+    
+    For pp = ppStart To ppEnd
+        'defind page url and paste it to "Download_Data"
+        url = "https://eutility.activebilling.com.au/accounts?page=" & pp
+        Worksheets("Download_Data").Range("A1").Value = url
+        
+        'Download data
+        pullDataFromInternet
+        
+
+        
+        Application.StatusBar = pp & "is Completed!"
+        
+    Next pp
+    
+    Application.StatusBar = False
+    Application.ScreenUpdating = True
+
+End Sub
+Sub ExtractData()
+    Dim LastRow As Long
+    Dim LastRowPaste As Long
+    Dim energyKey As String
+    Dim costKey As String
+    Dim showKey As String
+    Dim row As Integer
+    Dim check As Integer    'check for how many show key
+    
+    'initialise
+    energyKey = "Total (kWh)"
+    costKey = "Cost (ex. GST)"
+    showKey = "Show"
+    row = 1
+    
+    
+    'Check if there is data
+    LastRow = Worksheets("Download_Data").Cells(Worksheets("Download_Data").Rows.Count, "A").End(xlUp).row
+    
+    If LastRow > 2 Then
+    'extract and store data
+        'find the key
+        For row = 1 To LastRow
+            If InStr(Worksheets("Download_Data").Cells(row, 8), energyKey) > 0 And InStr(Worksheets("Download_Data").Cells(row, 11), costKey) > 0 Then
+                    'Detect total "Show"
+                    check = LastRow - row - 4   '4 = exclue "total + 12 month + Monthly average + Show More "
+                    
+                        If check >= 12 Then
+                            'Senario 1: Use recent data
+                        Else
+                            'Senario 2: Use Estimate data
+                        End If
+                    
+                    
+                Exit For
+            End If
+        Next row
+        
+        
+        
+        
+    End If
+End Sub
