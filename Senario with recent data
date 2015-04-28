@@ -121,43 +121,34 @@ End Sub
 Sub ExtractData()
     Dim LastRow As Long
     Dim LastRowPaste As Long
-    Dim energyKey As String
-    Dim costKey As String
+    Dim monthKey As String
+    Dim averageKey As String
     Dim showKey As String
-    Dim row As Integer
-    Dim check As Integer    'check for how many show key
+    Dim totCost As Double
+    Dim totEnergy As Double
+    
+        
     
     'initialise
-    energyKey = "Total (kWh)"
-    costKey = "Cost (ex. GST)"
-    showKey = "Show"
-    row = 1
+    monthKey = "12 months estimate"
+    averageKey = "Monthly average"
+    showKey = "Show More Show Less "
+    totCost = 0
+    totEnergy = 0
     
     
     'Check if there is data
     LastRow = Worksheets("Download_Data").Cells(Worksheets("Download_Data").Rows.Count, "A").End(xlUp).row
     
     If LastRow > 2 Then
-    'extract and store data
-        'find the key
-        For row = 1 To LastRow
-            If InStr(Worksheets("Download_Data").Cells(row, 8), energyKey) > 0 And InStr(Worksheets("Download_Data").Cells(row, 11), costKey) > 0 Then
-                    'Detect total "Show"
-                    check = LastRow - row - 4   '4 = exclue "total + 12 month + Monthly average + Show More "
-                    
-                        If check >= 12 Then
-                            'Senario 1: Use recent data
-                        Else
-                            'Senario 2: Use Estimate data
-                        End If
-                    
-                    
-                Exit For
-            End If
-        Next row
+    'check for the format
+        If Worksheets("Download_Data").Cells(LastRow, 1).Value = showKey _
+        And Worksheets("Download_Data").Cells(LastRow - 1, 1).Value = averageKey _
+        And Worksheets("Download_Data").Cells(LastRow - 2, 1).Value = monthKey Then
+        'extract and store data
+            totCost = Worksheets("Download_Data").Cells(LastRow - 2, 9).Value
+            totEnergy = Worksheets("Download_Data").Cells(LastRow - 2, 6).Value
         
-        
-        
-        
+        End If
     End If
 End Sub
